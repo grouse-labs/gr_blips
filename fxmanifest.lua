@@ -1,19 +1,24 @@
 fx_version 'cerulean'
 game 'gta5'
 
-author 'DonHulieo'
-description 'Don\'s Interactive Blips Framework for FiveM'
-version '1.0.2'
-url 'https://github.com/DonHulieo/iblips'
+author 'Grouse Labs'
+description 'Interactive Blip Framework for FiveM'
+version '2.0.0'
+url 'https://github.com/grouse-labs/gr_blips'
 
-shared_script '@duff/shared/import.lua'
+shared_script '@gr_lib/init.lua'
 
-server_script 'server/main.lua'
+client_scripts {
+  'client/main.lua',
+  -- 'example.lua'
+}
 
-client_script 'client/main.lua'
+files {
+  'src/blip.lua',
+  'shared/config.lua',
+  'images/*.png'
+}
 
-files {'client/blips.lua', 'shared/config.lua', 'images/*.png', 'locales/*.lua'}
-
-dependencies {'duff'}
+dependency 'gr_lib'
 
 lua54 'yes'

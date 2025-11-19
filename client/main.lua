@@ -1,96 +1,21 @@
-local duff = duff
-local bridge, locale, require, scaleform, streaming = duff.bridge, duff.locale, duff.package.require, duff.scaleform, duff.streaming
-local blips = require 'client.blips' --[[@module 'iblips.client.blips']]
-local config = require 'shared.config' --[[@module 'iblips.shared.config']]
-local LOAD_EVENT <const>, UNLOAD_EVENT <const> = bridge['_DATA']['EVENTS'].LOAD, bridge['_DATA']['EVENTS'].UNLOAD
-local TXD <const> = CreateRuntimeTxd 'don_blips'
-local RES_NAME <const> = GetCurrentResourceName()
+local blip = glib.require('src.blip') --[[@module 'gr_blips.src.blip']]
+local CONFIG <const> = glib.require('shared.config') --[[@module 'gr_blips.shared.config']]
+local TXD <const> = CreateRuntimeTxd('gr_blips')
 local IMAGE_PATH <const> = 'images/%s.png'
 local NUI_PATH <const> = 'https://cfx-nui-%s/%s'
-local Images = {}
-local t = locale.t
-local call_scaleform = scaleform.callfrontend
-local can_control, take_control, release_control = IsFrontendReadyForControl, TakeControlOfFrontend, ReleaseControlOfFrontend
-local is_mission_creator_blip, get_selected_mission_creator_blip = IsHoveringOverMissionCreatorBlip, GetNewSelectedMissionCreatorBlip
-local does_blip_exist = DoesBlipExist
+local images = {}
+local creator_sf = nil
 
----@param key string?
----@return boolean
-local function does_trans_exist(key) return pcall(t, key) end
-
----@param crew string? 4 Character Crew Tag
----@return string crew_tag {*_CREW}, formatted to be used in blip_creator_options
-local function get_crew_tag(crew) return ('{*_%s}'):format(crew or 'NULL') end
-
----@param data {title: string?, text: string?, icon: integer?, colour: integer?, checked: boolean?, crew: string?, is_social_club: boolean?, type: CREATOR_TYPES}
----@return {title: string?, text: string?, icon: integer?, colour: integer?, checked: boolean?, crew: string?, is_social_club: boolean?, type: CREATOR_TYPES}?
-local function trans_creator_info(data)
-  if not data then return end
-  if data.title then data.title = does_trans_exist(data.title) and t(data.title) or data.title end
-  if data.text then data.text = does_trans_exist(data.text) and t(data.text) or data.text end
-  if data.crew then data.crew = get_crew_tag(does_trans_exist(data.crew) and t(data.crew) or data.crew) end
-  return data
-end
-
----@param options blip_creator_options
----@return blip_creator_options?
-local function trans_creator_data(options)
-  if not options then return end
-  options.title = does_trans_exist(options.title) and t(options.title) or options.title
-  local info = options.info
-  if info then
-    for i = 1, #info do
-      local entry = info[i]
-      entry = trans_creator_info(entry) and trans_creator_info(entry) or entry
-    end
-  end
-  return options
-end
-
----@param blip_type BLIP_TYPES
----@param data {coords: vector3|vector4?, width: number?, height: number?, entity: integer?, pickup: integer?, radius: number?}
----@param options blip_options
----@param creator_options blip_creator_options?
----@return integer blip
-local function create_blip(blip_type, data, options, creator_options)
-  local blip = blips.create(blip_type, data)
-  local name = options.name
-  options.name = does_trans_exist(name) and t(name --[[@as string]]) or name
-  blips.setoptions(blip, options)
-  if creator_options then trans_creator_data(creator_options); blips.setcreatordata(blip, creator_options) end
-  return blip
-end
-
----@param resource string?
-local function init_script(resource)
-  if resource and type(resource) == 'string' and resource ~= RES_NAME then return end
-  for category, blip_configs in pairs(config) do
-    category = category:lower()
-    ---@diagnostic disable-next-line: cast-local-type
-    category = category ~= 'other' and category
-    for i = 1, #blip_configs do
-      local data = blip_configs[i]
-      data.options.display.category = category and not data.options.display.category and category or data.options.display.category
-      create_blip(data.type, data.data, data.options, data.creator)
-    end
-  end
-end
-
----@param state boolean
-local function show_display(state) call_scaleform('SHOW_COLUMN', 1, state) end
-
-local function clear_display() call_scaleform('SET_DATA_SLOT_EMPTY', 1) end
-
----@param resource string?
-local function deinit_script(resource)
-  if resource and type(resource) == 'string' and resource ~= RES_NAME then return end
-  show_display(false)
-  clear_display()
-  release_control()
-  SetStreamedTextureDictAsNoLongerNeeded('don_blips')
-  blips.clear()
-  Images = {}
-end
+---@enum (key) CREATOR_TYP_ARGS
+local CREATOR_TYP_ARGS = {
+  [0] = {0, 1},
+  [1] = {0, 1},
+  [2] = {0, 1},
+  [3] = {0, 1},
+  [4] = {0, 0},
+  [5] = {0, 0}
+}
+--------------------- FUNCTIONS ---------------------
 
 ---@param path string
 ---@param name string
@@ -108,84 +33,330 @@ end
 ---@param rp string?
 ---@param money string?
 ---@param ap string?
----@param image string|{resource: string, name: string, width: integer, height: integer}
+---@param image string|{resource: string, path: string, name: string, width: integer, height: integer}
 local function set_creator_title(title, verified, rp, money, ap, image)
   local is_string = type(image) == 'string'
-  if image and not Images[is_string and image or image.name] then
-    Images[image] = is_string and CreateRuntimeTextureFromImage(TXD, image --[[@as string]], IMAGE_PATH:format(image)) or create_runtime_from_nui(NUI_PATH:format(image.resource, IMAGE_PATH:format(image.name)), image.name, image.width, image.height)
-    streaming.await.loadtexturedict('don_blips')
+  if image and image ~= '' and not images[is_string and image or image.name] then
+    images[image] = is_string and CreateRuntimeTextureFromImage(TXD, image --[[@as string]], IMAGE_PATH:format(image)) or create_runtime_from_nui(NUI_PATH:format(image.resource, image.path), image.name, image.width, image.height)
+    glib.stream.textdict('gr_blips')
   end
-  call_scaleform('SET_COLUMN_TITLE', 1, '', title, verified or 0, {texture = true, name = 'don_blips'}, {texture = true, name = image and (is_string and image or image.name) or ''}, 1, 0, rp == '' and false or rp, money == '' and false or money, ap == '' and false or ap)
+  if not creator_sf then creator_sf = glib.scaleform({screen = {frontend = true}}) end
+  creator_sf:call('SET_COLUMN_TITLE', {
+    1,
+    '',
+    title,
+    verified or 0,
+    {texture = true, name = 'gr_blips'},
+    {texture = true, name = image and image ~= '' and (is_string and image or image.name) or ''},
+    1,
+    0,
+    rp == '' and false or rp,
+    money == '' and false or money,
+    ap == '' and false or ap
+  })
   if not image then return end
-  SetStreamedTextureDictAsNoLongerNeeded('don_blips')
+  SetStreamedTextureDictAsNoLongerNeeded('gr_blips')
 end
 
-local function update_display() call_scaleform('DISPLAY_DATA_SLOT', 1) end
+---@param state boolean
+local function show_display(state)
+  if not creator_sf then return end
+  creator_sf:call('SHOW_COLUMN', {1, state})
+end
 
--------------------------------- EVENTS --------------------------------
-AddEventHandler('onResourceStart', init_script)
-AddEventHandler('onResourceStop', deinit_script)
+local function clear_display()
+  if not creator_sf then return end
+  creator_sf:call('SET_DATA_SLOT_EMPTY', {1})
+end
 
-RegisterNetEvent(LOAD_EVENT, init_script)
-RegisterNetEvent(UNLOAD_EVENT, deinit_script)
--------------------------------- THREADS --------------------------------
+local function update_display()
+  if not creator_sf then return end
+  creator_sf:call('DISPLAY_DATA_SLOT', {1})
+end
 
----@enum (key) CREATOR_TYP_ARGS
-local CREATOR_TYP_ARGS = {
-  [0] = {0, 1},
-  [1] = {0, 1},
-  [2] = {0, 1},
-  [3] = {0, 1},
-  [4] = {0, 0},
-  [5] = {0, 0}
-}
+local function init(resource)
+  if type(resource) == 'string' and glib._RESOURCE ~= resource then return end
+  for _, configs in pairs(CONFIG) do
+    for i = 1, #configs do
+      local config = configs[i]
+      local _type = config._type
+      local options = config.options
+      local coords = options.coords
+      local creator_options = config.creator
+      blip.new(_type, {coords = coords}, options, creator_options)
+    end
+  end
+end
+
+local function deinit(resource)
+  if type(resource) == 'string' and glib._RESOURCE ~= resource then return end
+  show_display(false)
+  clear_display()
+  ReleaseControlOfFrontend()
+  SetStreamedTextureDictAsNoLongerNeeded('gr_blips')
+  blip.clearall()
+  Images = {}
+end
+--------------------- EXPORTS ---------------------
+
+exports('getall', blip.getall)
+exports('getonscreen', blip.getonscreen)
+exports('remove', blip.remove)
+exports('clearall', blip.clearall)
+exports('togglepolice', blip.togglepolice)
+exports('createcategory', blip.createcategory)
+exports('get', blip.get)
+
+exports('new', function(_type, data, options, creator_options)
+  local obj = blip.new(_type, data, options, creator_options)
+  if not obj then return end
+  return obj.id
+end)
+
+exports('create', function(handle, _type, data)
+  local obj = blip.get(handle):create(_type, data)
+  if not obj then return end
+  return obj.id
+end)
+
+exports('destroy', function(handle)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:destroy()
+end)
+
+exports('setcoords', function(handle, coords, heading)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcoords(coords, heading)
+end)
+
+exports('setcategory', function(handle, category)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcategory(category)
+end)
+
+exports('setdisplay', function(handle, display)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setdisplay(display)
+end)
+
+exports('setpriority', function(handle, priority)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setpriority(priority)
+end)
+
+exports('setcolour', function(handle, primary)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcolour(primary)
+end)
+
+exports('setsecondary', function(handle, secondary)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setsecondary(secondary)
+end)
+
+exports('setcustomcolour', function(handle, colour)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcustomcolour(colour)
+end)
+
+exports('setopacity', function(handle, opacity)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setopacity(opacity)
+end)
+
+exports('setflashes', function(handle, flashes)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setflashes(flashes)
+end)
+
+exports('setstyle', function(handle, style)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setstyle(style)
+end)
+
+exports('setindicators', function(handle, indicators)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setindicators(indicators)
+end)
+
+exports('setname', function(handle, name)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setname(name)
+end)
+
+exports('setplayername', function(handle, player_id)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setplayername(player_id)
+end)
+
+exports('setrange', function(handle, distance)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setrange(distance)
+end)
+
+exports('setoptions', function(handle, options)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setoptions(options)
+end)
+
+exports('setcreator', function(handle, toggle)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcreator(toggle)
+end)
+
+exports('setcreatortitle', function(handle, title, verified)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcreatortitle(title, verified)
+end)
+
+exports('setcreatorimage', function(handle, image)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcreatorimage(image)
+end)
+
+exports('setcreatoreconomy', function(handle, rp, money, ap)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcreatoreconomy(rp, money, ap)
+end)
+
+exports('addinfotitle', function(handle, title)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfotitle(title)
+  return key
+end)
+
+exports('addinfotitleandtext', function(handle, title, text)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfotitleandtext(title, text)
+  return key
+end)
+
+exports('addinfoicon', function(handle, icon, colour, checked)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfoicon(icon, colour, checked)
+  return key
+end)
+
+exports('addinfoplayer', function(handle, title, name, crew, is_social)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfoplayer(title, name, crew, is_social)
+  return key
+end)
+
+exports('addinfoheader', function(handle, title)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfoheader(title)
+  return key
+end)
+
+exports('addinfotext', function(handle, text)
+  local obj = blip.get(handle)
+  if not obj then return end
+  local _, key = obj:addinfotext(text)
+  return key
+end)
+
+exports('updateinfo', function(handle, key, info)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:updateinfo(key, info)
+end)
+
+exports('setcreatoroptions', function(handle, options)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:setcreatoroptions(options)
+end)
+
+--------------------- EVENTS ---------------------
+
+AddEventHandler('onResourceStart', init)
+AddEventHandler('onResourceStop', deinit)
+
+--------------------- THREADS ---------------------
 
 CreateThread(function()
-  local last_blip, sleep = 0, 3000
+  local last_blip = 0
+  local sleep = 1000
   while true do
-    Wait(sleep)
     if IsPauseMenuActive() then
-      sleep = 500
-      if can_control() then
-        if is_mission_creator_blip() then
-          local blip = get_selected_mission_creator_blip()
-          if not does_blip_exist(blip) or blip == 0 or blip == last_blip then goto continue end
-          last_blip, sleep = blip, 0
-          local blip_data = blips.getcreator(blip)
-          if not blip_data then
-            show_display(false)
-          else
-            take_control()
-            clear_display()
-            set_creator_title(blip_data.title, blip_data.verified, blip_data.rp, blip_data.money, blip_data.ap, blip_data.image)
-            for i = 1, #blip_data.info do
-              local entry = blip_data.info[i]
-              local info_type = entry.type
-              local args = CREATOR_TYP_ARGS[info_type]
-              local index = i - 1
-              call_scaleform('SET_DATA_SLOT', 1, index, 65, index, info_type, args[1], args[2], entry.title or entry.text, entry.text, entry.icon or entry.crew, entry.colour or entry.is_social_club, entry.checked)
+      if IsFrontendReadyForControl() then
+        sleep = 100
+        if IsHoveringOverMissionCreatorBlip() then
+          local handle = GetNewSelectedMissionCreatorBlip()
+          if handle ~= last_blip and handle ~= 0 then
+            local creator = blip.get(handle)?.creator
+            last_blip = handle
+            if not creator then
+              show_display(false)
+            else
+              local info = creator.info
+              TakeControlOfFrontend()
+              clear_display()
+              set_creator_title(creator.title, creator.verified--[[@as integer]], creator.rp, creator.money, creator.ap, creator.image)
+              if info and #info > 0 and creator_sf then
+                for i = 1, #info do
+                  local entry = info[i]
+                  local _type = entry._type
+                  local args = CREATOR_TYP_ARGS[_type]
+                  local index = i - 1
+                  creator_sf:call('SET_DATA_SLOT', {
+                    1,
+                    index,
+                    65,
+                    index,
+                    _type,
+                    args[1],
+                    args[2],
+                    entry.title or entry.text or '',
+                    entry.text or entry.name or '',
+                    entry.icon or entry.crew,
+                    entry.colour or entry.social,
+                    entry.checked
+                  })
+                end
+              end
+              glib.audio.playsound(false, '', 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET')
+              show_display(true)
+              update_display()
+              ReleaseControlOfFrontend()
             end
-            PlaySoundFrontend(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', true)
-            show_display(true)
-            update_display()
-            release_control()
           end
-          ::continue::
         else
           if last_blip ~= 0 then
-            last_blip, sleep = 0, 500
+            last_blip = 0
             show_display(false)
           end
         end
       end
     else
-      sleep = 3000
+      sleep = 1000
     end
+    Wait(sleep)
   end
 end)
-
--------------------------------- EXPORTS --------------------------------
-
-exports('initblip', create_blip)
-
-for k, v in pairs(blips) do exports(k, type(v) == 'function' and v or function() return v end) end
