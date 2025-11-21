@@ -164,6 +164,11 @@ function blip.createcategory(name)
   return id
 end
 
+function blip.doescategoryexist(name)
+  if not name or type(name) ~= 'string' then error('bad argument #1 to \'blip.createcategory\' (string expected)', 2) end
+  return category_type[name:lower()] ~= nil
+end
+
 function blip.get(id)
   if not id or type(id) ~= 'number' then error('bad argument #1 to \'blip.get\' (number expected)', 2) end
   return blips['blips:'..id]
@@ -707,7 +712,7 @@ end
 function blip:updateinfo(key, info)
   if not blip.get(self.id) then error('bad argument #1 to \'blip.updateinfo\' (invalid blip)', 2) end
   if not self:iscreator() then error('bad argument #1 to \'blip.updateinfo\' (blip is not a creator blip)', 2) end
-  if not self.creator.info[key] then error('bad argument #2 to \'blip.updateinfo\' (key doesn\'t exist)', 2) end
+  -- if not self.creator.info[key] then error('bad argument #2 to \'blip.updateinfo\' (key doesn\'t exist)', 2) end
   if not info or type(info) ~= 'table' then error('bad argument #3 to \'blip.updateinfo\' (table expected)', 2) end
   local _type = info._type
   local title = info.title
@@ -737,6 +742,17 @@ function blip:updateinfo(key, info)
     self.creator.info[key] = {title = title, _type = 4}
   elseif _type == 5 then
     self.creator.info[key] = {text = text, _type = 5}
+  end
+end
+
+function blip:clearinfo(key)
+  if not blip.get(self.id) then error('bad argument #1 to \'blip.clearinfo\' (invalid blip)', 2) end
+  if not self:iscreator() then error('bad argument #1 to \'blip.clearinfo\' (blip is not a creator blip)', 2) end
+  if key and type(key) ~= 'number' then error('bad argument #2 to \'blip.clearinfo\' (number or nil expected)', 2) end
+  if key then
+    table.remove(self.creator.info, key)
+  else
+    self.creator.info = {}
   end
 end
 

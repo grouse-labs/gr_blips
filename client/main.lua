@@ -105,6 +105,7 @@ exports('remove', blip.remove)
 exports('clearall', blip.clearall)
 exports('togglepolice', blip.togglepolice)
 exports('createcategory', blip.createcategory)
+exports('doescategoryexist', blip.doescategoryexist)
 exports('get', blip.get)
 
 exports('new', function(_type, data, options, creator_options)
@@ -285,6 +286,12 @@ exports('updateinfo', function(handle, key, info)
   local obj = blip.get(handle)
   if not obj then return end
   obj:updateinfo(key, info)
+end)
+
+exports('clearinfo', function(handle, key)
+  local obj = blip.get(handle)
+  if not obj then return end
+  obj:clearinfo(key)
 end)
 
 exports('setcreatoroptions', function(handle, options)

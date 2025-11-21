@@ -38,6 +38,7 @@
 ---@field clearall fun()
 ---@field togglepolice fun(toggle: boolean): active: boolean
 ---@field createcategory fun(name: string): id: integer
+---@field doescategoryexist fun(name: string): exists: boolean
 ---@field get fun(handle: integer): blip
 ---@field new fun(_type: BLIP_TYPES, data: {coords: vector3|vector4, width: number?, height: number?, entity: integer?, ped: integer?, vehicle: integer?, object: integer?, pickup: integer?, radius: number?}, options: blip_options?, creator_options: blip_creator_options?): blip
 ---@field create fun(self: blip, _type: BLIP_TYPES, data: {coords: vector3|vector4, width: number?, height: number?, entity: integer?, ped: integer?, vehicle: integer?, object: integer?, pickup: integer?, radius: number?}): blip
@@ -68,6 +69,7 @@
 ---@field addinfoheader fun(self: blip, title: string): self: blip, key: integer
 ---@field addinfotext fun(self: blip, text: string): self: blip, key: integer
 ---@field updateinfo fun(self: blip, key: integer, info: {title: string?, text: string?, name: string?, icon: integer?, colour: integer?, checked: boolean?, crew: string?, social: boolean?, _type: 0|1|2|3|4|5})
+---@field clearinfo fun(self: blip, key: integer?)
 ---@field setcreatoroptions fun(self: blip, options: blip_creator_options): blip
 
 -- Exports --
@@ -90,6 +92,10 @@ function exports.gr_blips:togglepolice(toggle) end
 ---@param name string
 ---@return integer id
 function exports.gr_blips:createcategory(name) end
+
+---@param name string
+---@return boolean exists
+function exports.gr_blips:doescategoryexist(name) end
 
 ---@param handle integer
 ---@return blip
@@ -229,6 +235,10 @@ function exports.gr_blips:addinfotext(handle, text) end
 ---@param key integer
 ---@param info {title: string?, text: string?, name: string?, icon: integer?, colour: integer?, checked: boolean?, crew: string?, social: boolean?, _type: 0|1|2|3|4|5}
 function exports.gr_blips:updateinfo(handle, key, info) end
+
+---@param handle integer
+---@param key integer?
+function exports.gr_blips:clearinfo(handle, key) end
 
 ---@param handle integer
 ---@param options blip_creator_options
