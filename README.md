@@ -2,7 +2,7 @@
 <!-- [x] Rewrite Documentation, with better Features and Setup -->
 <!-- [x] Add All Exported Functions to the Documentation -->
 <!-- [x] Add All Enums to the Documentation -->
-<!-- [ ] Update #Image to new function parameters -->
+<!-- [x] Update #Image to new function parameters -->
 <!-- [ ] Make Discoverable blips that can be hidden until the player is close enough, and save whether the player has discovered them -->
 <!-- [ ] Make Toggleable blips that can be turned on and off by the player -->
 
@@ -32,6 +32,7 @@ A framework for creating interactive blips on the map, both static and dynamic, 
     - [Documentation](#documentation)
       - [Enums](#enums)
         - [BLIP\_TYPES](#blip_types)
+        - [category\_type](#category_type)
         - [eBlipDisplay](#eblipdisplay)
         - [VERIFIED\_TYPES](#verified_types)
       - [Classes](#classes)
@@ -109,6 +110,39 @@ A string (not case sensitive) representing the type of blip to be created.
 - `pickup`
 - `radius`
 - `race`
+
+##### category_type
+
+A string (not case sensitive) representing the blip category.
+
+```lua
+{
+  nodist = 1,
+  dist = 2,
+  jobs = 3,
+  myjobs = 4,
+  mission = 5,
+  activity = 6,
+  players = 7,
+  shops = 8,
+  races = 9,
+  property = 10,
+  ownedproperty = 11,
+}
+```
+
+- See [Vhub wiki BLIP_CATEGORY](https://vhub.wiki/enums/BLIP_CATEGORY)
+- Categories can also be added via;
+
+```lua
+---@param name string
+---@return integer id
+function exports.gr_blips:createcategory(name) end
+
+---@param name string
+---@return integer id
+function blip.createcategory(name) end
+```
 
 ##### eBlipDisplay
 
