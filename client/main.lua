@@ -1,5 +1,4 @@
 local blip = glib.require('src.blip') --[[@module 'gr_blips.src.blip']]
-local CONFIG <const> = glib.require('shared.config') --[[@module 'gr_blips.shared.config']]
 local TXD <const> = CreateRuntimeTxd('gr_blips')
 local IMAGE_PATH <const> = 'images/%s.png'
 local NUI_PATH <const> = 'https://cfx-nui-%s/%s'
@@ -72,20 +71,6 @@ end
 local function update_display()
   if not creator_sf then return end
   creator_sf:call('DISPLAY_DATA_SLOT', {1})
-end
-
-local function init(resource)
-  if type(resource) == 'string' and glib._RESOURCE ~= resource then return end
-  for _, configs in pairs(CONFIG) do
-    for i = 1, #configs do
-      local config = configs[i]
-      local _type = config._type
-      local options = config.options
-      local coords = options.coords
-      local creator_options = config.creator
-      blip.new(_type, {coords = coords}, options, creator_options)
-    end
-  end
 end
 
 local function deinit(resource)
@@ -302,7 +287,6 @@ end)
 
 --------------------- EVENTS ---------------------
 
-AddEventHandler('onResourceStart', init)
 AddEventHandler('onResourceStop', deinit)
 
 --------------------- THREADS ---------------------

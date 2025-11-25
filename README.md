@@ -27,10 +27,8 @@ A framework for creating interactive blips on the map, both static and dynamic, 
   - [Installation](#installation)
     - [Dependencies](#dependencies)
     - [Initial Setup](#initial-setup)
-    - [Configuration](#configuration)
-      - [Annotations](#annotations)
-        - [Usage (VS Code)](#usage-vs-code)
-      - [Shared Config](#shared-config)
+    - [Annotations](#annotations)
+      - [Usage (VS Code)](#usage-vs-code)
     - [Documentation](#documentation)
       - [Enums](#enums)
         - [BLIP\_TYPES](#blip_types)
@@ -65,15 +63,12 @@ A framework for creating interactive blips on the map, both static and dynamic, 
 - Download the latest version from releases.
 - Extract the contents of the zip file into your resources folder, into a folder which starts before any script this is a dependency for, or;
 - Ensure the script in your `server.cfg` before any script this is a dependency for.
-- Configure `shared/config.lua` to your liking, see [Configuration](#configuration) for more information.
 
-### Configuration
-
-#### Annotations
+### Annotations
 
 Function completion is available for all functions, enums and classes. This means you can see what parameters a function takes, what an enum value is, or what a class field is. This is done through [Lua Language Server](https://github.com/LuaLS/lua-language-server).
 
-##### Usage (VS Code)
+#### Usage (VS Code)
 
 - Install [cfxlua-vscode](https://marketplace.visualstudio.com/items?itemName=overextended.cfxlua-vscode).
 - Open your settings (Ctrl + ,) and add the following:
@@ -81,57 +76,6 @@ Function completion is available for all functions, enums and classes. This mean
 
 ```json
 "Lua.workspace.library": ["F:/resources/[gr]/gr_blips/src/meta"],
-```
-
-#### Shared Config
-
-```lua
-{
-  ---@type {[string]: {_type: BLIP_TYPES, options: blip_options, creator: blip_creator_options}}[]
-  ['Jobs'] =  {
-    {
-      _type = 'coord',
-      options = blip_options,
-      creator = {
-        title = 'Default Job',
-        verified = 'none',
-        rp = '1000',
-        money = '56',
-        ap = '100',
-        info = {
-          {
-            title = 'Info Title',
-            _type = 0
-          },
-          {
-            title = 'Info Title and Text - Title',
-            text = 'Info Title and Text - Text',
-            _type = 1
-          },
-          {
-            icon = 1,
-            colour = 12,
-            checked = true,
-            _type = 2
-          },
-          {
-            crew = 'ECIK',
-            social = false,
-            _type = 3
-          },
-          {
-            title = 'Info Header',
-            _type = 4
-          },
-          {
-            text = 'Info Text',
-            _type = 5
-          }
-        }
-      }
-    }
-  }
-}
 ```
 
 ### Documentation
