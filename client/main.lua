@@ -308,17 +308,17 @@ AddEventHandler('onResourceStop', deinit)
 --------------------- THREADS ---------------------
 
 CreateThread(function()
-  local last_blip = 0
+  local handle = 0
   local sleep = 1000
   while true do
     if IsPauseMenuActive() then
       if IsFrontendReadyForControl() then
         sleep = 100
         if IsHoveringOverMissionCreatorBlip() then
-          local handle = GetNewSelectedMissionCreatorBlip()
-          if handle ~= last_blip and handle ~= 0 then
+          handle = GetNewSelectedMissionCreatorBlip()
+          if --[[handle ~= last_blip and]] handle ~= 0 then
             local creator = blip.get(handle)?.creator
-            last_blip = handle
+            -- last_blip = handle
             if not creator then
               show_display(false)
             else
@@ -355,8 +355,8 @@ CreateThread(function()
             end
           end
         else
-          if last_blip ~= 0 then
-            last_blip = 0
+          if handle ~= 0 then
+            handle = 0
             show_display(false)
           end
         end
