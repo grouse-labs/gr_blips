@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Grouse Labs'
 description 'Interactive Blip Framework for FiveM'
-version '2.0.0'
+version '2.1.0'
 url 'https://github.com/grouse-labs/gr_blips'
 
 shared_script '@gr_lib/init.lua'
