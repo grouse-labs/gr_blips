@@ -104,7 +104,7 @@ function exports.gr_blips:get(handle) end
 ---@param _type BLIP_TYPES
 ---@param data {coords: vector3|vector4?, width: number?, height: number?, entity: integer?, ped: integer?, vehicle: integer?, object: integer?, pickup: integer?, radius: number?}
 ---@param options blip_options
----@param creator_options blip_creator_options
+---@param creator_options blip_creator_options?
 ---@return integer handle
 function exports.gr_blips:new(_type, data, options, creator_options) end
 
