@@ -15,7 +15,6 @@ client_scripts {
 
 files {
   'src/blip.lua',
-  'shared/config.lua',
   'images/*.png'
 }
 
